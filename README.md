@@ -17,13 +17,13 @@ Centralized Control & Monitoring:
 
 # 🏗️ System Architecture & Technology Stack
 The system follows a layered Modern Street Light System architecture:
-1. End Device (The Brain)
-Hardware: STM32F103C8T6 Development Board (MCU) for cost-effective performance in multi-sensor data processing.
+1. End Device 
+Hardware: EPS32 Development Board (MCU) for cost-effective performance in multi-sensor data processing.
 Sensors: Infrared Motion (SEN0018) , Ambient Light (GY-30 BH1750FVI) , Rain Sensor , and Power Meter (INA219).
-Communication: LoRa-Enable Modules (SX1276)  for low-power, long-range transmission.
+Communication: LoRa-Enable Modules for low-power, long-range transmission.
 
-2. Gateway (The Bridge) 
-Hardware: Raspberry Pi 3  (Pi3A+ Plus) acting as the LoRaWAN Gateway.
+2. Gateway 
+Hardware: Raspberry Pi 3B acting as the LoRaWAN Gateway.
 Software: Python scripts running on Raspberry Pi OS to receive LoRa packets and forward them to the server.
 
 3. Network Server & Application 
