@@ -1,0 +1,19 @@
+# --- CORE PACKAGES ---
+pandas
+numpy
+scikit-learn
+joblib
+
+# --- INFLUXDB CLIENT ---
+influxdb-client[pandas]
+
+# --- API SERVICE (FastAPI) ---
+fastapi
+uvicorn
+
+# --- OPTIONAL (if you later need async client or CBOR) ---
+httpx
+
+# --- TIME SERIES / ML UTILS (optional but helpful) ---
+pyyaml
+python-dateutil

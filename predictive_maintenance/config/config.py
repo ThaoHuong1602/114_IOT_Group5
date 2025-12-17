@@ -1,0 +1,9 @@
+INFLUX_URL = "http://140.118.102.20:8086"
+INFLUX_TOKEN = "WL5kVnN0I6rIBhwi9R1LkmV391b36xivyJjpk3BPhyGmHk9H1AeAZNj6RyT6WrzMdp8y_acqHIySZO7AtecA3w=="
+INFLUX_ORG = "IIOT"
+INFLUX_BUCKET = "MONITORING_DATA"
+INFLUX_MEASUREMENT = "led_status"
+
+MODEL_PATH = "model/led_maintenance_model.pkl"
+
+DEFAULT_DEVICE = "lamp01"
