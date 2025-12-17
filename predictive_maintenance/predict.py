@@ -1,10 +1,16 @@
+import google.generativeai as genai
+from prediction_service.utils import generate_rul_prompt
 from datetime import datetime, timedelta
 import json
 import sys
+import os
 import time
 import numpy as np
 import paho.mqtt.client as mqtt
 import config
+from influxdb_client import InfluxDBClient
+from configs.config import INFLUX_URL, INFLUX_TOKEN, INFLUX_ORG, INFLUX_BUCKET
+
 
 # Tự động chọn module dựa trên Config
 if config.USE_SIMULATION:
@@ -32,77 +38,99 @@ device_states = {
 
 lora = None
 tb_client = mqtt.Client()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 
 # --- XỬ LÝ DỮ LIỆU NHẬN ĐƯỢC TỪ LORA (Real Data) ---
 
+def safe_extract_text(response):
+    if not response.candidates:
+        return None
 
-# def query_last_1h(device_name):
-#     query = f'''
-#     from(bucket: "{INFLUX_BUCKET}")
-#       |> range(start: -1h)
-#       |> filter(fn: (r) => r["device"] == "{device_name}")
-#       |> filter(fn: (r) => r["_measurement"] == "telemetry")
-#       |> filter(fn: (r) => r["_field"] == "vol" or r["_field"] == "cur")
-#     '''
+    candidate = response.candidates[0]
 
-#     tables = query_api.query(query)
-#     values = {"vol": [], "cur": []}
+    if not candidate.content or not candidate.content.parts:
+        return None
 
-#     for table in tables:
-#         for record in table.records:
-#             values[record.get_field()].append(record.get_value())
-
-#     return values
-
-
-def predict_rul(sensor_data):
-    """
-    sensor_data = {
-        "voltage": [...],
-        "current": [...],
-        "power":   [...]
-    }
-    Returns:
-        RUL (hours)
-    """
-
-    # Safety check
-    if len(sensor_data.get("voltage", [])) == 0:
-        return 0
-
-    # Averages over last 1 hour
-    vol_avg = np.mean(sensor_data["voltage"])
-    cur_avg = np.mean(sensor_data["current"])
-    pow_avg = np.mean(sensor_data["power"])
-
-    # ===== Degradation components =====
-    # 1. Voltage stress (deviation from nominal)
-    voltage_stress = abs(vol_avg - 220) / 220          # normalized
-
-    # 2. Current stress (normalized to rated current, e.g. 5A)
-    rated_current = 5.0
-    current_stress = cur_avg / rated_current
-
-    # 3. Power stress (normalized to rated power, e.g. 100W)
-    rated_power = 100.0
-    power_stress = pow_avg / rated_power
-
-    # ===== Total degradation score =====
-    degradation = (
-        0.4 * voltage_stress +
-        0.35 * current_stress +
-        0.25 * power_stress
+    return "".join(
+        part.text for part in candidate.content.parts if hasattr(part, "text")
     )
 
-    # Clamp degradation
-    degradation = min(degradation, 1.5)
 
-    # ===== Convert to RUL =====
-    # Assume max useful life = 100 hours (demo)
-    max_life = 100
-    rul = max(0, int(max_life * (1 - degradation)))
+def query_last_1h(device_name):
+    client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
+    query_api = client.query_api()
 
-    return rul
+    query = f'''
+    from(bucket: "{INFLUX_BUCKET}")
+      |> range(start: -5h)
+      |> filter(fn: (r) => r["_measurement"] == "street_light")
+      |> filter(fn: (r) => r["_field"] == "voltage" or r["_field"] == "current" or r["_field"] == "power" or r["_field"] == "brightness" or r["_field"] == "light")
+      |> filter(fn: (r) => r["device"] == "{device_name}")
+      |> aggregateWindow(
+            every: 5m,
+            fn: mean,
+            createEmpty: true
+        )
+        |> fill(usePrevious: true)
+        |> sort(columns: ["_time"])
+    '''
+
+    df = query_api.query_data_frame(query)
+    df = df[["_time", "_field", "_value"]]
+
+    # Keep only needed columns
+    df_pivot = df.pivot(
+        index="_time",
+        columns="_field",
+        values="_value"
+    )
+    df_pivot = (
+        df_pivot
+        .sort_index()
+        .ffill()
+        .bfill()
+    )
+
+    timestamps = df_pivot.index.to_list()
+
+    values = {
+        "voltage": df_pivot["voltage"].to_list() if "voltage" in df_pivot else [],
+        "current": df_pivot["current"].to_list() if "current" in df_pivot else [],
+        "power": df_pivot["power"].to_list() if "power" in df_pivot else [],
+        "brightness": df_pivot["brightness"].to_list() if "brightness" in df_pivot else [],
+        "light": df_pivot["light"].to_list() if "light" in df_pivot else []
+    }
+
+    return timestamps, values
+
+
+def predict_rul_with_gemini(prompt):
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    response = model.generate_content(
+        contents=[
+            {
+                "role": "user",
+                "parts": [
+                    {"text": prompt['instruction']},
+                    {"text": prompt['input']}
+                ]
+            }
+        ],
+        generation_config={
+            "temperature": 0.2,
+            "top_p": 0.9,
+            "max_output_tokens": 128
+        }
+    )
+
+    # Gemini returns text – extract integer safely
+    text = safe_extract_text(response)
+
+    predicted_rul = int("".join(c for c in text if c.isdigit()))
+
+    return predicted_rul
 
 
 def process_lora_data(data):
@@ -118,20 +146,26 @@ def process_lora_data(data):
             dev_name = config.DEVICE_MAP[dev_id]
 
             # 2️⃣ Query past 1 hour data from Influx
-            # sensor_data = query_last_1h(dev_name)
-            sensor_data = {
-                "voltage": [1],
-                "current": [1.19],
-                "power": [20]
-            }
+            timestamps, sensor_data = query_last_1h(dev_name.replace(" ", "_"))
+            sensor_data["last_rul"] = [data["rul"]]
+            # sensor_data = {
+            #     "voltage": [1],
+            #     "current": [1.19],
+            #     "power": [20]
+            # }
+
+            rul_prompt = generate_rul_prompt(
+                device_id=dev_id, values=sensor_data, timestamps=timestamps)
+            print(rul_prompt)
 
             # 3️⃣ Predict RUL
-            rul = predict_rul(sensor_data)
+            rul = predict_rul_with_gemini(rul_prompt)
 
             # 2. Đóng gói Telemetry (Thông số cảm biến)
             telemetry = {
-                "rul":  800  # rul
+                "rul":  rul  # rul
             }
+            print(telemetry)
 
             # 4. Gửi lên ThingsBoard
             tb_client.publish("v1/gateway/telemetry",

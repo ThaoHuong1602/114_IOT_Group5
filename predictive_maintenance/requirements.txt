@@ -5,7 +5,7 @@ scikit-learn
 joblib
 
 # --- INFLUXDB CLIENT ---
-influxdb-client[pandas]
+influxdb-client
 
 # --- API SERVICE (FastAPI) ---
 fastapi
@@ -17,3 +17,5 @@ httpx
 # --- TIME SERIES / ML UTILS (optional but helpful) ---
 pyyaml
 python-dateutil
+
+google-generativeai
