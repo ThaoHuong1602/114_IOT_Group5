@@ -34,33 +34,31 @@ void parseJsonMessage(const char* jsonString) {
         return;
     }
 
-    cJSON* deviceID = cJSON_GetObjectItem(root, "deviceID");
-    cJSON* ambientLightIntensity = cJSON_GetObjectItem(root, "ambientLightIntensity");
-    cJSON* ledBrightness = cJSON_GetObjectItem(root, "ledBrightness");
-    cJSON* voltage = cJSON_GetObjectItem(root, "voltage");
-    cJSON* current = cJSON_GetObjectItem(root, "current");
-    cJSON* power = cJSON_GetObjectItem(root, "power");
-    cJSON* isMotion = cJSON_GetObjectItem(root, "isMotion");
-    cJSON* isRain = cJSON_GetObjectItem(root, "isRain");
+    cJSON* deviceIdJson = cJSON_GetObjectItem(root, "deviceID");
+    cJSON* cmdJson = cJSON_GetObjectItem(root, "CMD");
+    cJSON* valJson = cJSON_GetObjectItem(root, "val");
 
-    if (deviceID && ambientLightIntensity && ledBrightness && voltage && current && power && isMotion && isRain) {
-        printf("Receiver: deviceID = %d\n", deviceID->valueint);
-        printf("Receiver: ambientLightIntensity = %d\n", ambientLightIntensity->valueint);
-        printf("Receiver: ledBrightness = %d\n", ledBrightness->valueint);
-        printf("Receiver: voltage = %d\n", voltage->valueint);
-        printf("Receiver: current = %d\n", current->valueint);
-        printf("Receiver: power = %d\n", power->valueint);
-        if (cJSON_IsBool(isMotion)) {
-          if (cJSON_IsTrue(isMotion)) printf("isMotion: true\n");
-          else printf("isMotion: false\n");
-        }
-        if (cJSON_IsBool(isRain)) {
-          if (cJSON_IsTrue(isRain)) printf("isRain: true\n");
-          else printf("isRain: false\n");
-        }
+    if (deviceIdJson && cmdJson && valJson) {
+        printf("Receiver: deviceID = %d\n", deviceIdJson->valueint);
+        deviceID = deviceIdJson->valueint;
+        printf("Receiver: CMD = %s\n", cmdJson->valuestring);
+        cmd = cmdJson->valuestring;
+        printf("Receiver: val = %d\n", valJson->valueint);
+        val = valJson->valueint;
     }     
     else {
         printf("Receiver: Missing fields!\n");
+    }
+    if (deviceID == 0) {
+      if (cmd == "DIM") {
+        ledBrightness = val;
+      }
+      else if (cmd == "COLOR") {
+        ledColor = val;
+      }
+      else if (cmd == "AUTO") {
+        operationMode = val;
+      }
     }
 
     cJSON_Delete(root);

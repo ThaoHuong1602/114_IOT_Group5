@@ -1,11 +1,18 @@
-void setColor(int red, int green, int blue) { 
-  if (red == 0 && green == 0 && blue == 0) {
-    digitalWrite(LED_COMMON_ANODE, LOW);
+void updateLedState(int ledBrightness, int ledColor) {
+  printf("Update led status\n");
+  // Set brightness
+  pixels.setBrightness(ledBrightness); // 0-255
+  // Set color (1: yellow 0: white)
+  if (ledColor == 1) {
+    for (int i = 0; i < NUMPIXELS; i++) {
+      pixels.setPixelColor(i, pixels.Color(255, 255, 0));
+    }
+    pixels.show();
   }
-  else {
-    digitalWrite(LED_COMMON_ANODE, HIGH);
+  else if (ledColor == 0) {
+    for (int i = 0; i < NUMPIXELS; i++) {
+      pixels.setPixelColor(i, pixels.Color(255, 255, 255)); // R, G, B
+    }
+    pixels.show();
   }
-  analogWrite(LED_RED, 255 - red);
-  analogWrite(LED_GREEN, 255 - green);
-  analogWrite(LED_BLUE, 255 - blue);
 }
