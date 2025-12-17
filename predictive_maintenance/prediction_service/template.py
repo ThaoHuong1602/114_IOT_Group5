@@ -27,6 +27,7 @@ RUL_TEMPLATE = {
         - The average RUL hour of the LED is 1000 hours.
         - RUL is expected to be decreasing over time.
         - Assume the LED consumes at least 1 hour of RUL every 1 hour even under stable operating conditions.
+        - If the current data is lower or equal than 0, the RUL is instantly 0 because the device is broken.
         - Sudden increases in RUL are unlikely unless operating stress is reduced.
         """,
 
