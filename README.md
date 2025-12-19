@@ -83,7 +83,7 @@ ThingsBoard (Live Demo or Local Install)
 
 1.2 End Node (ESP32) Assemble the 3D printed street light components. Wire the sensors to the ESP32 analog/digital pins as defined in firmware/street_light_node/config.h.
 
-Step 2: Firmware Installation
+**Step 2: Firmware Installation**
 
 Open firmware/street_light_node.ino in Arduino IDE.
 
@@ -93,7 +93,7 @@ Update the LoRa Frequency (433MHz/868MHz/915MHz) to match your region.
 
 Upload to the ESP32.
 
-Step 3: Gateway Configuration
+**Step 3: Gateway Configuration**
 
 SSH into your Raspberry Pi.
 
@@ -108,7 +108,7 @@ Run the gateway:
 
 _python gateway_service.py_
 
-Step 4: ThingsBoard Dashboard
+**Step 4: ThingsBoard Dashboard**
 
 Login to ThingsBoard.
 
