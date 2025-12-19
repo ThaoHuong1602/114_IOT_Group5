@@ -52,46 +52,74 @@ Gateway Layer: Raspberry Pi receives LoRa packets via SPI and forwards them to T
 
 Application Layer: ThingsBoard dashboard visualizes "Light Intensity," "Maintenance Alerts," and "Power Consumption".
 
-⚡ Getting Started
-Prerequisites
+⚡ Getting Started Prerequisites
+
 **Hardware:**
 ESP32 Dev Module
+
 Raspberry Pi (Zero W / 3 / 4)
+
 LoRa Modules (e.g., inAir9B or RA-02)
+
 Sensors: Rain, PIR (KY-032), Light (TCRT5000)
 
+
 **Software:**
+
 Arduino IDE
+
 Python 3.7+ (for Gateway)
+
 ThingsBoard (Live Demo or Local Install)
 
 
 **Step 1: Hardware Setup & Assembly**
+
 1.1 LoRa Gateway (Raspberry Pi) Connect the LoRa module to the Raspberry Pi GPIO headers as follows:
+
+
 <img width="410" height="415" alt="image" src="https://github.com/user-attachments/assets/04005291-f368-472a-92eb-66f3371d9b24" />
+
 
 1.2 End Node (ESP32) Assemble the 3D printed street light components. Wire the sensors to the ESP32 analog/digital pins as defined in firmware/street_light_node/config.h.
 
 Step 2: Firmware Installation
+
 Open firmware/street_light_node.ino in Arduino IDE.
+
 Install the required LoRa library (e.g., Sandeep Mistry LoRa).
+
 Update the LoRa Frequency (433MHz/868MHz/915MHz) to match your region.
+
 Upload to the ESP32.
 
 Step 3: Gateway Configuration
+
 SSH into your Raspberry Pi.
+
 Navigate to the gateway directory and install dependencies:
+
 _cd gateway
 pip install RPi.GPIO spidev paho-mqtt_
+
 Update gateway_config.py with your ThingsBoard Device Access Token.
+
 Run the gateway:
+
 _python gateway_service.py_
 
 Step 4: ThingsBoard Dashboard
+
 Login to ThingsBoard.
+
 Go to Dashboards > Import.
+
 Upload thingsboard/dashboard_export.json.
+
 You should now see the "Smart LED Management" interface with widgets for:
+
 Total Lights / Working Lights count.
+
 Real-time Light Intensity graph.
+
 Predictive Maintenance Alerts.
